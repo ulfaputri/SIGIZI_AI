@@ -540,25 +540,6 @@ function renderPager(){
 }
 function gotoPage(p){const total=Math.max(1,Math.ceil(filtered.length/perPage)); if(p>=1&&p<=total){page=p;render();window.scrollTo({top:document.getElementById("list").offsetTop-80,behavior:"smooth"})}}
 function resetFilters(){document.getElementById("q").value="";document.getElementById("risk").value="";document.getElementById("statusGizi").value="";document.getElementById("pos").value="";document.getElementById("month").value="";document.getElementById("sort").value="score";apply()}
-
-function followupKey(c){return "sigizi_followup_"+String(c.nik||c.nama||"anak").replace(/[^a-zA-Z0-9_-]/g,"_");}
-function getFollowup(c){try{return JSON.parse(localStorage.getItem(followupKey(c))||"{}")}catch(e){return {}}}
-function saveFollowup(idx){
- const c=children[idx]; if(!c)return;
- const answers={};
- document.querySelectorAll("[data-follow-answer]").forEach(el=>{answers[el.dataset.followAnswer]=el.value;});
- const data={
-  status:document.getElementById("fuStatus")?.value||"",
-  tanggal:document.getElementById("fuDate")?.value||"",
-  petugas:document.getElementById("fuOfficer")?.value||"",
-  hasil:document.getElementById("fuResult")?.value||"",
-  catatan:document.getElementById("fuNotes")?.value||"",
-  answers, updatedAt:new Date().toISOString()
- };
- try{localStorage.setItem(followupKey(c),JSON.stringify(data));}
- catch(e){alert("Tidak dapat menyimpan tindak lanjut pada perangkat ini.");return;}
- const msg=document.getElementById("fuSaved"); if(msg)msg.textContent="Tindak lanjut tersimpan pada perangkat ini.";
-}
 function openProfile(idx){
  try{
  const c=children[idx];
@@ -603,21 +584,6 @@ function openProfile(idx){
     <div class="mini"><span>Tindak lanjut</span><b style="font-size:12px">${(String(c.lastBBTB||"").toLowerCase().includes("risiko gizi lebih")||String(c.lastBBTB||"").toLowerCase().includes("gizi lebih")||String(c.lastBBTB||"").toLowerCase().includes("obesitas")||String(c.lastStatus?.["BB/U"]||"").toLowerCase().includes("risiko lebih"))?"PEMANTAUAN RISIKO GIZI LEBIH":"Sesuai masalah gizi"}</b></div>
   </div>
   <div class="card" style="box-shadow:none;background:#fafdfc"><b>Faktor risiko</b><p style="font-size:12px">${esc(faktorTampil(c))}</p><b>Rekomendasi</b><p style="font-size:12px">${esc(rekomendasiSingkat(c))}</p></div>
-  ${(()=>{const f=getFollowup(c);return `<div class="card" style="margin-top:12px;box-shadow:none;border:1px solid #99d5c9">
-   <h3 style="margin:0 0 6px;color:var(--primary2)">📝 Form tindak lanjut lapangan</h3>
-   <p class="help">Isi setelah kunjungan. Data disimpan di browser/perangkat yang digunakan.</p>
-   <div class="controls" style="grid-template-columns:1fr 1fr">
-    <label style="font-size:12px">Status tindak lanjut<select id="fuStatus"><option value="">Pilih status</option>${["Belum ditindaklanjuti","Sudah dikunjungi","Konseling dilakukan","PMT diberikan","Dirujuk","Tidak ditemukan","Tindak lanjut belum selesai"].map(x=>`<option ${f.status===x?"selected":""}>${x}</option>`).join("")}</select></label>
-    <label style="font-size:12px">Tanggal kunjungan<input id="fuDate" type="date" value="${esc(f.tanggal||"")}"></label>
-    <label style="font-size:12px">Nama petugas/kader<input id="fuOfficer" value="${esc(f.petugas||"")}" placeholder="Nama petugas/kader"></label>
-    <label style="font-size:12px">Hasil tindak lanjut<input id="fuResult" value="${esc(f.hasil||"")}" placeholder="Contoh: keluarga bersedia..."></label>
-   </div>
-   <label style="display:block;font-size:12px;margin-top:8px">Catatan lapangan<textarea id="fuNotes" rows="3" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit">${esc(f.catatan||"")}</textarea></label>
-   <h4 style="margin:12px 0 5px;font-size:13px">Jawaban petugas/kader atas pertanyaan</h4>
-   <p class="help">Tuliskan jawaban keluarga/pengasuh atau hasil pengamatan untuk setiap pertanyaan.</p>
-   ${(e.ask||[]).map((q,i)=>`<label style="display:block;font-size:12px;margin:8px 0"><b>${i+1}. ${esc(q)}</b><textarea data-follow-answer="${i}" rows="2" style="display:block;width:100%;padding:9px;border:1px solid var(--line);border-radius:9px;margin-top:4px;font:inherit">${esc(f.answers?.[i]||"")}</textarea></label>`).join("")}
-   <button class="btn" onclick="saveFollowup(${idx})" style="margin-top:10px">Simpan tindak lanjut</button><span id="fuSaved" class="note" aria-live="polite">${f.updatedAt?"Tersimpan pada perangkat ini.":""}</span>
-  </div>`})()}
 
 ${t?`<div class="sourcebox" style="border-left:4px solid #0f766e">
     <b>📘 Rekomendasi tatalaksana berbasis Juknis PMT Lokal 2025</b>
