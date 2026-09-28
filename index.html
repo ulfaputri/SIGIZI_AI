@@ -83,7 +83,17 @@ table{width:100%}
 }
 </style>
 
-</head>
+<style>
+.coverage-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+.coverage-month{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff;min-width:0}
+.coverage-month b{display:block;font-size:13px;margin-bottom:7px}
+.coverage-track{height:18px;display:flex;overflow:hidden;border-radius:6px;background:#fee2e2}
+.coverage-measured{background:#0f766e;height:100%}
+.coverage-unmeasured{background:#dc2626;height:100%}
+.coverage-detail{font-size:11px;line-height:1.6;margin-top:7px;color:var(--ink)}
+.coverage-detail .muted{color:var(--muted)}
+@media(max-width:700px){.coverage-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>\n</head>
 <body>
 <header><div class="wrap">
   <div class="brand"><div class="logo">🥗</div><div><h1>SIGIZI-AI</h1><div class="sub">Smart Gizi Intelligence & Follow-up</div></div></div>
@@ -104,7 +114,16 @@ table{width:100%}
 
 <section class="section chartgrid">
   <div class="card" style="grid-column:1/-1"><h2>📊 Rekap sasaran Januari–Agustus 2026</h2><p class="help">Grafik menunjukkan total sasaran per bulan: balita yang diukur + balita yang tercatat tidak diukur.</p></div>
-  <div class="card"><h2>📈 Trend total sasaran per bulan</h2><p class="help">Total sasaran = balita diukur + balita tidak diukur pada bulan tersebut.</p><div class="chart" id="chartTotal"></div></div>
+  <div class="card" style="grid-column:1/-1"><details>
+    <summary style="cursor:pointer;font-weight:800;color:var(--primary2)">📈 Trend total sasaran per bulan (klik untuk melihat)</summary>
+    <p class="help" style="margin-top:10px">Angka di atas batang menunjukkan total sasaran.</p><div class="chart" id="chartTotal"></div>
+  </details></div>
+  <div class="card" style="grid-column:1/-1"><details>
+    <summary style="cursor:pointer;font-weight:800;color:var(--primary2)">📊 Persentase Pengukuran Balita per Bulan (klik untuk melihat)</summary>
+    <p class="help" style="margin-top:10px">Persentase dihitung dari jumlah balita diukur dan tidak diukur dibandingkan total sasaran pada bulan yang sama. Angka jumlah dan persentase ditampilkan di setiap bulan.</p>
+    <div id="coverageChart" class="coverage-grid"></div>
+    <div class="legend"><span>🟩 Diukur</span><span>🟥 Tidak diukur</span></div>
+  </details></div>
 </section>
 
 
@@ -118,7 +137,7 @@ table{width:100%}
 </details></section>
 
 <section class="section card" id="priorityMapCard">
-  <details open>
+  <details>
     <summary style="cursor:pointer;font-weight:800;color:var(--primary2);font-size:16px">🗺️ Peta Prioritas Intervensi (klik untuk membuka/menutup)</summary>
     <p class="help" style="margin-top:10px">Visualisasi persebaran masalah untuk membantu mengenali wilayah dan kelompok sasaran yang perlu ditinjau. Prioritas diurutkan secara relatif berdasarkan jumlah kasus, lalu persentase pada kelompok dan periode yang sama.</p>
     <div class="controls" style="grid-template-columns:1fr 1fr;margin:10px 0">
@@ -604,6 +623,23 @@ function makeChart(elId,key,maxVal,color="#0f766e"){
    return `<div class="barcol"><div class="bar" style="height:${Math.max(3,Math.round(v/max*165))}px;background:${color}"><span>${v}</span></div><div class="barlabel">${x.month}</div></div>`;
  }).join("");
 }
+function renderCoverageChart(){
+ const el=document.getElementById("coverageChart");
+ if(!el || !Array.isArray(DATA.trend)) return;
+ el.innerHTML=DATA.trend.map(x=>{
+   const total=Number(x.total)||0, measured=Number(x.diukur)||0, unmeasured=Number(x.tidakDiukur)||0;
+   if(!total) return `<div class="coverage-month"><b>${esc(x.month||"")}</b><div class="coverage-detail">Data total sasaran tidak tersedia.</div></div>`;
+   const mp=measured/total*100, up=unmeasured/total*100;
+   return `<div class="coverage-month"><b>${esc(x.month)}</b>
+    <div class="coverage-track" title="Diukur ${mp.toFixed(1)}%; tidak diukur ${up.toFixed(1)}%">
+      <div class="coverage-measured" style="width:${Math.max(0,Math.min(100,mp))}%"></div>
+      <div class="coverage-unmeasured" style="width:${Math.max(0,Math.min(100,up))}%"></div>
+    </div>
+    <div class="coverage-detail"><span style="color:#0f766e;font-weight:700">Diukur: ${measured.toLocaleString("id-ID")} (${mp.toFixed(1).replace(".",",")}%)</span><br>
+    <span style="color:#dc2626;font-weight:700">Tidak diukur: ${unmeasured.toLocaleString("id-ID")} (${up.toFixed(1).replace(".",",")}%)</span><br>
+    <span class="muted">Total sasaran: ${total.toLocaleString("id-ID")}</span></div></div>`;
+ }).join("");
+}
 function init(){
  document.getElementById("mTotal").textContent=DATA.summary.total;
  document.getElementById("mRed").textContent=DATA.summary.red;
@@ -613,6 +649,7 @@ function init(){
  document.getElementById("mUnassessed").textContent=DATA.summary.unassessed;
  const pos=document.getElementById("pos"); DATA.summary.posyandu.filter(x=>x && x!=="-").forEach(p=>pos.insertAdjacentHTML("beforeend",`<option>${esc(p)}</option>`));
  makeChart("chartTotal","total",Math.max(...DATA.trend.map(x=>x.total)));
+ renderCoverageChart();
  apply();
 }
 
