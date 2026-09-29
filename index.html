@@ -107,6 +107,12 @@ table{width:100%}
 @media(max-width:560px){.fq-meta,.fq-grid{grid-template-columns:1fr}.fq-actions{align-items:stretch}.fq-actions button{width:100%}}
 </style>
 
+
+<style id="followup-dashboard-style">
+.followup-dashboard{margin-top:16px}.followup-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}.followup-kpi{background:#f7faf9;border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.followup-kpi span{display:block;font-size:11px;color:var(--muted)}.followup-kpi b{display:block;font-size:23px;margin-top:5px;color:var(--primary2)}.followup-table-wrap{overflow:auto;max-width:100%}.followup-table{width:100%;border-collapse:collapse;font-size:12px;min-width:720px}.followup-table th,.followup-table td{padding:9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.followup-table th{background:#f7faf9;position:sticky;top:0}.followup-empty{font-size:12px;color:var(--muted);padding:12px;background:#f8fafc;border-radius:10px}
+@media(max-width:700px){.followup-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+
 </head>
 <body>
 <header><div class="wrap">
@@ -215,6 +221,23 @@ table{width:100%}
 <section class="section">
   <div class="list" id="list"></div>
   <div class="pagination" id="pager"></div>
+</section>
+
+
+<section class="section card followup-dashboard" id="followupDashboard">
+  <details>
+    <summary style="cursor:pointer;font-weight:800;color:var(--primary2);font-size:16px">📝 Dashboard Tindak Lanjut (klik untuk membuka)</summary>
+    <p class="help" style="margin-top:10px">Rekap formulir tindak lanjut yang tersimpan pada browser/perangkat ini. Data belum tersinkron otomatis ke perangkat lain.</p>
+    <div class="followup-kpis">
+      <div class="followup-kpi"><span>Total anak dalam data</span><b id="fuTotal">0</b></div>
+      <div class="followup-kpi"><span>Formulir terisi</span><b id="fuFilled">0</b></div>
+      <div class="followup-kpi"><span>Belum mengisi</span><b id="fuMissing">0</b></div>
+      <div class="followup-kpi"><span>Tindakan belum dilakukan</span><b id="fuPending">0</b></div>
+    </div>
+    <h3 style="font-size:14px;margin:12px 0 8px">Riwayat tindak lanjut yang tersimpan</h3>
+    <div id="followupDashboardRows" class="followup-table-wrap"><div class="followup-empty">Belum ada formulir tindak lanjut yang tersimpan pada perangkat ini.</div></div>
+    <div class="fq-actions"><button class="btn2" type="button" onclick="renderFollowupDashboard()">Perbarui rekap</button></div>
+  </details>
 </section>
 
 <footer>Data demo SIGIZI-AI • Decision-support, bukan alat diagnosis • Keputusan klinis/rujukan tetap oleh tenaga kesehatan.</footer>
@@ -538,7 +561,7 @@ function render(){
    <div class="chips"><span class="chip">BB/U: ${esc((document.getElementById("month")?.value?monthStatus(c,document.getElementById("month").value).bb_u:c.lastBB)||"- ")}</span><span class="chip">TB/U: ${esc((document.getElementById("month")?.value?monthStatus(c,document.getElementById("month").value).tb_u:c.lastTB)||"- ")}</span><span class="chip">BB/TB: ${esc((document.getElementById("month")?.value?monthStatus(c,document.getElementById("month").value).bb_tb:c.lastBBTB)||"- ")}</span><span class="chip">${document.getElementById("month")?.value?(isTidakDiukur(c,document.getElementById("month").value)?"Bulan: "+({Jan:"Januari",Feb:"Februari",Mar:"Maret",Apr:"April",Mei:"Mei",Jun:"Juni",Jul:"Juli",Agu:"Agustus"}[document.getElementById("month").value])+" • TIDAK DIUKUR":"Bulan: "+({Jan:"Januari",Feb:"Februari",Mar:"Maret",Apr:"April",Mei:"Mei",Jun:"Juni",Jul:"Juli",Agu:"Agustus"}[document.getElementById("month").value])):"Terakhir: "+(c.lastDate||c.lastMonth)}</span></div>
    <div class="meta"><b>Faktor:</b> ${esc(isTidakDiukur(c,selectedMonth)?"Tidak ada pengukuran pada bulan tersebut":faktorTampil(c))}</div>
    <div class="meta"><b>Rekomendasi:</b> ${esc(isTidakDiukur(c,selectedMonth)?"Lakukan penjangkauan/kunjungan dan pengukuran pada kesempatan berikutnya. Jangan menetapkan kategori risiko tanpa data pengukuran bulan tersebut.":rekomendasiSingkat(c))}</div>
-   <button class="btn" onclick="openProfile(${children.indexOf(c)})">Lihat profil & edukasi kader →</button>
+   <button class="btn" onclick="openProfile(${children.indexOf(c)})">Profil dan Tindak Lanjut →</button>
   </div>`; }).join("") || '<div class="card">Tidak ada anak yang sesuai pencarian.</div>';
  renderPager();
 }
@@ -645,6 +668,24 @@ function renderFollowupQuestionnaire(c){
   <div class="fq-actions"><button class="btn" type="submit">Simpan jawaban</button><span id="followupStatus" class="fq-status">${saved.savedAt?"Jawaban tersimpan di perangkat ini.":""}</span></div>
  </form></section>`;
 }
+
+function renderFollowupDashboard(){
+ const total=children.length; let filled=0,pending=0; const rows=[];
+ children.forEach(c=>{
+  let d=null; try{d=JSON.parse(localStorage.getItem(followupStorageKey(c))||"null");}catch(e){}
+  if(!d || typeof d!=="object") return;
+  filled++; if(d.tindakan==="Belum dilakukan") pending++;
+  rows.push({c,d});
+ });
+ const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=Number(v).toLocaleString("id-ID")};
+ set("fuTotal",total);set("fuFilled",filled);set("fuMissing",Math.max(0,total-filled));set("fuPending",pending);
+ const target=document.getElementById("followupDashboardRows"); if(!target)return;
+ if(!rows.length){target.innerHTML='<div class="followup-empty">Belum ada formulir tindak lanjut yang tersimpan pada perangkat ini.</div>';return;}
+ rows.sort((a,b)=>String(b.d.tanggal||"").localeCompare(String(a.d.tanggal||""))||String(a.c.nama||"").localeCompare(String(b.c.nama||"")));
+ const safe=v=>esc(v==null||v===""?"—":String(v));
+ target.innerHTML='<table class="followup-table"><thead><tr><th>Nama anak</th><th>Desa / Posyandu</th><th>Tanggal</th><th>Petugas</th><th>Tindakan</th><th>Catatan</th></tr></thead><tbody>'+rows.map(({c,d})=>`<tr><td><b>${safe(c.nama)}</b></td><td>${safe(c.desa)}<br>${safe(c.posyandu)}</td><td>${safe(d.tanggal)}</td><td>${safe(d.petugas)}</td><td>${safe(d.tindakan)}</td><td>${safe(d.catatan)}</td></tr>`).join('')+'</tbody></table>';
+}
+
 function bindFollowupForm(){
  const form=document.getElementById("followupForm");
  if(!form)return;
@@ -656,6 +697,7 @@ function bindFollowupForm(){
    localStorage.setItem(form.dataset.key,JSON.stringify(data));
    const status=document.getElementById("followupStatus");
    if(status)status.textContent="Jawaban berhasil disimpan di perangkat ini.";
+   renderFollowupDashboard();
   }catch(err){alert("Jawaban belum dapat disimpan. Periksa penyimpanan browser/perangkat.");}
  });
 }
@@ -771,6 +813,7 @@ function init(){
  const pos=document.getElementById("pos"); DATA.summary.posyandu.filter(x=>x && x!=="-").forEach(p=>pos.insertAdjacentHTML("beforeend",`<option>${esc(p)}</option>`));
  makeChart("chartTotal","total",Math.max(...DATA.trend.map(x=>x.total)));
  renderCoverageChart();
+ renderFollowupDashboard();
  apply();
 }
 
