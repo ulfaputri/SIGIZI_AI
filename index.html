@@ -743,9 +743,10 @@ function bindFollowupForm(){
   try{
    const previous=JSON.parse(localStorage.getItem(form.dataset.key)||"null");
    const history=previous&&Array.isArray(previous.history)?previous.history:(previous&&typeof previous==="object"?[previous]:[]);
-   history.push(data);
-   data.history=history;
-   localStorage.setItem(form.dataset.key,JSON.stringify(data));
+   // Simpan salinan isian sebagai entri riwayat agar tidak membentuk referensi melingkar.
+   history.push({...data});
+   const record={...data,history};
+   localStorage.setItem(form.dataset.key,JSON.stringify(record));
    const status=document.getElementById("followupStatus");
    if(status)status.textContent="Jawaban berhasil disimpan di perangkat ini.";
    renderFollowupDashboard();
