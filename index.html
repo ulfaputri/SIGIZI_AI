@@ -93,7 +93,21 @@ table{width:100%}
 .coverage-detail{font-size:11px;line-height:1.6;margin-top:7px;color:var(--ink)}
 .coverage-detail .muted{color:var(--muted)}
 @media(max-width:700px){.coverage-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-</style>\n</head>
+</style>\n
+<style id="followup-questionnaire-style">
+.followup-form{margin:14px 0;border:1px solid #b7e0db;background:#f5fcfa;border-radius:14px;padding:14px}
+.followup-form h3{margin:0 0 5px;color:#115e59;font-size:16px}
+.fq-meta,.fq-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.fq-item{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12px;font-weight:650}
+.fq-item span{line-height:1.4}
+.fq-item select,.fq-item input,.fq-item textarea{font-weight:400;font-size:14px;padding:10px;border:1px solid #cbd5d1;border-radius:9px;background:#fff;width:100%}
+.fq-full{margin-top:10px}
+.fq-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.fq-status{font-size:11px;color:#166534}
+@media(max-width:560px){.fq-meta,.fq-grid{grid-template-columns:1fr}.fq-actions{align-items:stretch}.fq-actions button{width:100%}}
+</style>
+
+</head>
 <body>
 <header><div class="wrap">
   <div class="brand"><div class="logo">🥗</div><div><h1>SIGIZI-AI</h1><div class="sub">Smart Gizi Intelligence & Follow-up</div></div></div>
@@ -540,6 +554,111 @@ function renderPager(){
 }
 function gotoPage(p){const total=Math.max(1,Math.ceil(filtered.length/perPage)); if(p>=1&&p<=total){page=p;render();window.scrollTo({top:document.getElementById("list").offsetTop-80,behavior:"smooth"})}}
 function resetFilters(){document.getElementById("q").value="";document.getElementById("risk").value="";document.getElementById("statusGizi").value="";document.getElementById("pos").value="";document.getElementById("month").value="";document.getElementById("sort").value="score";apply()}
+
+function followupStorageKey(c){
+ const ident=String(c.nik||"").trim() || `${String(c.nama||"").trim()}_${String(c.lahir||"").trim()}`;
+ return "sigiziAiFollowup_" + encodeURIComponent(ident);
+}
+function renderFollowupQuestionnaire(c){
+ const key=followupStorageKey(c);
+ let saved={};
+ try{saved=JSON.parse(localStorage.getItem(key)||"{}")||{};}catch(e){}
+ const date=new Date();
+ const today=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+ const ageM=ageMonthsAtDate(c,today);
+ let ageLabel="Usia belum dapat ditentukan";
+ let fields=[];
+ const common=[
+  ["nafsu","Bagaimana nafsu makan anak dalam 7 hari terakhir?",["Baik seperti biasa","Berkurang","Sangat berkurang/tidak mau makan","Naik-turun","Tidak tahu"]],
+  ["sakit","Dalam 14 hari terakhir, apakah anak mengalami sakit yang mengganggu makan atau aktivitas?",["Tidak","Ya, demam/batuk/pilek","Ya, diare/muntah","Ya, keluhan lain","Ya, lebih dari satu keluhan","Tidak tahu"]],
+  ["pmt","Apakah anak menerima PMT? Jika ya, bagaimana dikonsumsi?",["Tidak mendapat PMT","Dikonsumsi anak sampai habis","Dikonsumsi sebagian","Tidak dikonsumsi","Tidak tahu/belum dikonfirmasi"]],
+  ["kendala","Apa kendala utama dalam memenuhi makan anak atau mengikuti anjuran?",["Tidak ada kendala","Anak sulit makan/pilih-pilih","Keterbatasan bahan pangan/biaya","Pengasuh/waktu terbatas","Anak sering sakit","Belum memahami anjuran","Kendala lain"]]
+ ];
+ if(ageM>=0 && ageM<6){
+  ageLabel="Bayi usia 0–5 bulan";
+  fields=[
+   ["asi","Apakah anak saat ini masih mendapatkan ASI?",["Ya","Tidak","Tidak tahu"]],
+   ["asiEks","Dalam 24 jam terakhir, apakah anak hanya mendapatkan ASI tanpa makanan/minuman lain (termasuk air putih)?",["Ya","Tidak","Tidak tahu"]],
+   ["asiKendala","Apakah ibu mengalami kesulitan menyusui?",["Tidak","ASI dirasa kurang","Bayi sulit melekat/mengisap","Ibu sakit atau ada kendala lain","Tidak tahu"]],
+   ["tambahan","Apakah anak mendapat susu formula atau makanan/minuman selain ASI?",["Tidak","Ya, susu formula","Ya, air putih/cairan lain","Ya, makanan atau MP-ASI","Ya, lebih dari satu jenis","Tidak tahu"]],
+   ...common
+  ];
+ }else if(ageM>=6 && ageM<=8){
+  ageLabel="Bayi usia 6–8 bulan";
+  fields=[
+   ["asi","Apakah anak masih mendapatkan ASI?",["Ya","Tidak","Tidak tahu"]],
+   ["mpasiMulai","Kapan anak mulai diberikan MP-ASI secara rutin?",["Sebelum usia 6 bulan","Saat usia 6 bulan","Setelah usia 6 bulan","Belum mendapat MP-ASI","Tidak tahu"]],
+   ["makan","Dalam 24 jam terakhir, berapa kali anak makan MP-ASI (makanan utama)?",["Belum makan MP-ASI","1 kali","2–3 kali","4 kali atau lebih","Tidak ingat"]],
+   ["karbo","Dalam 24 jam terakhir, apakah anak mengonsumsi makanan pokok (nasi/bubur, jagung, kentang, ubi, atau sumber karbohidrat lain)?",["Ya","Tidak","Tidak tahu"]],
+   ["protein","Dalam 24 jam terakhir, apakah anak mengonsumsi lauk sumber protein (telur/ikan/ayam/daging/tahu/tempe)?",["Ya, protein hewani","Ya, protein nabati saja","Ya, keduanya","Tidak","Tidak tahu"]],
+   ["sayurbuah","Dalam 24 jam terakhir, apakah anak mengonsumsi sayur atau buah?",["Ya, sayur dan buah","Ya, sayur saja","Ya, buah saja","Tidak keduanya","Tidak tahu"]],
+   ["tekstur","Bagaimana tekstur MP-ASI yang diberikan?",["Lumat/kental","Saring atau encer","Makanan keluarga tanpa penyesuaian","Belum mendapat MP-ASI","Tidak tahu"]],
+   ...common
+  ];
+ }else if(ageM>=9 && ageM<=11){
+  ageLabel="Bayi usia 9–11 bulan";
+  fields=[
+   ["asi","Apakah anak masih mendapatkan ASI?",["Ya","Tidak","Tidak tahu"]],
+   ["makan","Dalam 24 jam terakhir, berapa kali anak makan makanan utama/MP-ASI?",["0–2 kali","3–4 kali","5 kali atau lebih","Tidak ingat"]],
+   ["karbo","Dalam 24 jam terakhir, apakah anak mengonsumsi makanan pokok (nasi/bubur, jagung, kentang, ubi, atau sumber karbohidrat lain)?",["Ya","Tidak","Tidak tahu"]],
+   ["protein","Dalam 24 jam terakhir, apakah anak mengonsumsi lauk sumber protein (telur/ikan/ayam/daging/tahu/tempe)?",["Ya, protein hewani","Ya, protein nabati saja","Ya, keduanya","Tidak","Tidak tahu"]],
+   ["sayurbuah","Dalam 24 jam terakhir, apakah anak mengonsumsi sayur atau buah?",["Ya, sayur dan buah","Ya, sayur saja","Ya, buah saja","Tidak keduanya","Tidak tahu"]],
+   ["tekstur","Bagaimana tekstur makanan yang diberikan?",["Cincang/lumat kasar atau makanan yang dapat dipegang","Masih lumat/saring halus","Makanan keluarga tanpa penyesuaian","Tidak tahu"]],
+   ["selingan","Dalam 24 jam terakhir, apakah anak mendapat makanan selingan?",["Ya","Tidak","Tidak ingat"]],
+   ...common
+  ];
+ }else if(ageM>=12 && ageM<=23){
+  ageLabel="Anak usia 12–23 bulan";
+  fields=[
+   ["asi","Apakah anak masih mendapatkan ASI?",["Ya","Tidak","Tidak tahu"]],
+   ["makan","Dalam 24 jam terakhir, berapa kali anak makan makanan utama?",["0–2 kali","3–4 kali","5 kali atau lebih","Tidak ingat"]],
+   ["karbo","Dalam 24 jam terakhir, apakah anak mengonsumsi makanan pokok (nasi, jagung, kentang, ubi, atau sumber karbohidrat lain)?",["Ya","Tidak","Tidak tahu"]],
+   ["protein","Dalam 24 jam terakhir, apakah anak mengonsumsi lauk sumber protein (telur/ikan/ayam/daging/tahu/tempe)?",["Ya, protein hewani","Ya, protein nabati saja","Ya, keduanya","Tidak","Tidak tahu"]],
+   ["sayurbuah","Dalam 24 jam terakhir, apakah anak mengonsumsi sayur atau buah?",["Ya, sayur dan buah","Ya, sayur saja","Ya, buah saja","Tidak keduanya","Tidak tahu"]],
+   ["selingan","Dalam 24 jam terakhir, apakah anak mendapat makanan selingan?",["Ya, 1–2 kali","Ya, lebih dari 2 kali","Tidak","Tidak ingat"]],
+   ["caraSuap","Bagaimana anak biasanya dibantu saat makan?",["Didampingi dan dibantu dengan sabar","Dibiarkan makan sendiri dengan pengawasan","Sering dipaksa atau dimarahi","Tidak tentu/lainnya"]],
+   ...common
+  ];
+ }else{
+  ageLabel=ageM>=24 && ageM<=59 ? "Anak usia 24–59 bulan" : "Usia di luar kelompok kuesioner balita";
+  fields=[
+   ["makan","Dalam 24 jam terakhir, berapa kali anak makan makanan utama?",["0–1 kali","2 kali","3 kali","Lebih dari 3 kali","Tidak ingat"]],
+   ["karbo","Dalam 24 jam terakhir, apakah anak mengonsumsi makanan pokok (nasi, jagung, kentang, ubi, atau sumber karbohidrat lain)?",["Ya","Tidak","Tidak tahu"]],
+   ["protein","Dalam 24 jam terakhir, apakah anak mengonsumsi lauk sumber protein (telur/ikan/ayam/daging/tahu/tempe)?",["Ya, protein hewani","Ya, protein nabati saja","Ya, keduanya","Tidak","Tidak tahu"]],
+   ["sayurbuah","Dalam 24 jam terakhir, apakah anak mengonsumsi sayur atau buah?",["Ya, sayur dan buah","Ya, sayur saja","Ya, buah saja","Tidak keduanya","Tidak tahu"]],
+   ["selingan","Dalam 24 jam terakhir, apakah anak mendapat makanan selingan?",["Ya","Tidak","Tidak ingat"]],
+   ["caraSuap","Bagaimana anak biasanya didampingi saat makan?",["Didampingi dan diberi kesempatan makan sendiri","Selalu disuapi","Sering dipaksa atau dimarahi","Tidak tentu/lainnya"]],
+   ...common
+  ];
+ }
+ const select=(name,label,options)=>`<label class="fq-item"><span>${label}</span><select name="${name}" required><option value="">Pilih jawaban</option>${options.map(x=>`<option value="${x.replace(/&/g,"&amp;").replace(/"/g,"&quot;")}" ${saved[name]===x?"selected":""}>${x}</option>`).join("")}</select></label>`;
+ return `<section class="followup-form" aria-label="Kuesioner tindak lanjut">
+ <h3>📝 Kuesioner Singkat Tindak Lanjut</h3>
+ <p class="help">Diisi kader/nakes saat kunjungan atau pemantauan. Pertanyaan menyesuaikan usia anak (${ageLabel}; ${ageM>=0?ageM+" bulan":"umur tidak tersedia"}). Pertanyaan konsumsi merujuk pada 24 jam terakhir, sedangkan keluhan sakit merujuk pada 14 hari terakhir. Pilih satu jawaban yang paling sesuai.</p>
+ <form id="followupForm" data-key="${key}">
+  <div class="fq-meta"><label class="fq-item"><span>Tanggal tindak lanjut</span><input type="date" name="tanggal" required value="${saved.tanggal||today}"></label>
+  <label class="fq-item"><span>Nama petugas/kader</span><input type="text" name="petugas" placeholder="Nama pengisi" required value="${(saved.petugas||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;")}"></label>
+  <label class="fq-item"><span>Responden</span><select name="responden" required><option value="">Pilih responden</option>${["Ibu","Ayah","Nenek/kakek","Pengasuh lain"].map(x=>`<option ${saved.responden===x?"selected":""}>${x}</option>`).join("")}</select></label></div>
+  <div class="fq-grid">${fields.map(([n,l,o])=>select(n,l,o)).join("")}</div>
+  <label class="fq-item fq-full"><span>Tindak lanjut yang dilakukan</span><select name="tindakan" required><option value="">Pilih tindakan</option>${["Edukasi/konseling sesuai usia","Pemantauan pertumbuhan di Posyandu","Kunjungan rumah lanjutan","Koordinasi dengan tenaga kesehatan","Rujuk/arah ke Puskesmas","Belum dilakukan"].map(x=>`<option ${saved.tindakan===x?"selected":""}>${x}</option>`).join("")}</select></label>
+  <label class="fq-item fq-full"><span>Catatan singkat (opsional)</span><textarea name="catatan" rows="2" placeholder="Temuan penting atau rencana berikutnya">${(saved.catatan||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")}</textarea></label>
+  <div class="fq-actions"><button class="btn" type="submit">Simpan jawaban</button><span id="followupStatus" class="fq-status">${saved.savedAt?"Jawaban tersimpan di perangkat ini.":""}</span></div>
+ </form></section>`;
+}
+function bindFollowupForm(){
+ const form=document.getElementById("followupForm");
+ if(!form)return;
+ form.addEventListener("submit",e=>{
+  e.preventDefault();
+  const data=Object.fromEntries(new FormData(form).entries());
+  data.savedAt=new Date().toISOString();
+  try{
+   localStorage.setItem(form.dataset.key,JSON.stringify(data));
+   const status=document.getElementById("followupStatus");
+   if(status)status.textContent="Jawaban berhasil disimpan di perangkat ini.";
+  }catch(err){alert("Jawaban belum dapat disimpan. Periksa penyimpanan browser/perangkat.");}
+ });
+}
 function openProfile(idx){
  try{
  const c=children[idx];
@@ -595,6 +714,7 @@ ${t?`<div class="sourcebox" style="border-left:4px solid #0f766e">
   <h3>📏 Riwayat pengukuran Januari–Agustus 2026</h3>
   <div style="overflow:auto"><table class="history"><thead><tr><th>Tanggal Pengukuran</th><th>Umur saat pengukuran</th><th>BB (kg)</th><th>PB/TB (cm)</th><th>BB/U</th><th>TB/U</th><th>BB/TB</th><th>Z BB/U</th><th>Z TB/U</th><th>Z BB/TB</th><th>Naik / Tidak Naik</th><th>Posyandu</th></tr></thead><tbody>${ukur||'<tr><td colspan="12">Tidak ada data pengukuran.</td></tr>'}</tbody></table></div>
 
+  ${renderFollowupQuestionnaire(c)}
   <div class="edu"><h3>🗣️ Panduan Bicara Langsung untuk Kader</h3>
     <p style="font-size:12px;margin:0 0 8px"><b>Gunakan alur SAJI: Salam – Ajak bicara – Jelaskan – Ingatkan.</b></p>
     <ol style="margin:7px 0 12px 20px;padding:0;font-size:12px;line-height:1.65">${e.script.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>
@@ -607,6 +727,7 @@ ${t?`<div class="sourcebox" style="border-left:4px solid #0f766e">
   <div class="sourcebox"><b>📚 Referensi</b><br><i>Keputusan Direktur Jenderal Kesehatan Primer dan Komunitas Nomor HK.02.02/B/576/2025 tentang Petunjuk Teknis Pemberian Makanan Tambahan Berbahan Pangan Lokal bagi Ibu Hamil dan Balita Bermasalah Gizi</i> (khusus tata laksana balita bermasalah gizi), serta pedoman Kementerian Kesehatan RI untuk edukasi dan kunjungan kader.</div>
   ${(()=>{try{return isiPiringRekomendasi(c)||"";}catch(err){return "";}})()}
   <div class="note">Materi ini membantu percakapan dan kunjungan kader. Kader tidak menetapkan diagnosis; penilaian dan keputusan klinis tetap dilakukan oleh tenaga kesehatan.</div>`;
+ bindFollowupForm();
  document.getElementById("modal").classList.add("show");
  }catch(err){
    console.error("openProfile error:",err);
