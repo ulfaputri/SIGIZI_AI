@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f766e">
-<title>SIGIZI-AI — Dashboard Puskesmas Sungai Paduan (HP)</title>
+<title>SIMANIS (SiGizi Smart Analysis) — Dashboard Puskesmas Sungai Paduan</title>
 <style>
 :root{--bg:#f4f7f7;--card:#fff;--ink:#17302e;--muted:#64748b;--primary:#0f766e;--primary2:#115e59;--line:#dbe5e4;--red:#b91c1c;--redbg:#fee2e2;--yellow:#a16207;--yellowbg:#fef3c7;--green:#166534;--greenbg:#dcfce7;--shadow:0 8px 24px rgba(15,118,110,.08)}
 *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink)} 
@@ -116,7 +116,7 @@ table{width:100%}
 </head>
 <body>
 <header><div class="wrap">
-  <div class="brand"><div class="logo">🥗</div><div><h1>SIGIZI-AI</h1><div class="sub">Smart Gizi Intelligence & Follow-up</div></div></div>
+  <div class="brand"><div class="logo">🥗</div><div><h1>SIMANIS</h1><div class="sub">SiGizi Smart Analysis</div></div></div>
   <div class="tag">UPTD Puskesmas Sungai Paduan • Kabupaten Kayong Utara</div>
   <div class="sub" style="margin-top:8px">Dinas Kesehatan dan Keluarga Berencana Kabupaten Kayong Utara • Dari Data Menjadi Tindakan</div>
 </div></header>
@@ -222,6 +222,8 @@ table{width:100%}
   <div class="list" id="list"></div>
   <div class="pagination" id="pager"></div>
 </section>
+
+
 
 
 <section class="section card followup-dashboard" id="followupDashboard">
@@ -663,6 +665,13 @@ function renderFollowupQuestionnaire(c){
   <label class="fq-item"><span>Nama petugas/kader</span><input type="text" name="petugas" placeholder="Nama pengisi" required value="${(saved.petugas||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;")}"></label>
   <label class="fq-item"><span>Responden</span><select name="responden" required><option value="">Pilih responden</option>${["Ibu","Ayah","Nenek/kakek","Pengasuh lain"].map(x=>`<option ${saved.responden===x?"selected":""}>${x}</option>`).join("")}</select></label></div>
   <div class="fq-grid">${fields.map(([n,l,o])=>select(n,l,o)).join("")}</div>
+  <h4 class="fq-full" style="margin:14px 0 4px;color:var(--primary2)">📏 Pengukuran ulang</h4>
+  <p class="help fq-full" style="margin:0 0 8px">Isi jika pengukuran ulang dilakukan saat kunjungan ini. Gunakan hasil pengukuran yang sudah diperiksa.</p>
+  <div class="fq-grid">
+   <label class="fq-item"><span>Tanggal pengukuran ulang</span><input type="date" name="tanggalUlang" value="${saved.tanggalUlang||""}"></label>
+   <label class="fq-item"><span>Berat badan ulang (kg)</span><input type="number" name="bbUlang" min="0" step="0.01" inputmode="decimal" placeholder="Contoh: 10,5" value="${saved.bbUlang||""}"></label>
+   <label class="fq-item"><span>Panjang/Tinggi badan ulang (cm)</span><input type="number" name="pbTbUlang" min="0" step="0.1" inputmode="decimal" placeholder="Contoh: 82,5" value="${saved.pbTbUlang||""}"></label>
+  </div>
   <label class="fq-item fq-full"><span>Tindak lanjut yang dilakukan</span><select name="tindakan" required><option value="">Pilih tindakan</option>${["Edukasi/konseling sesuai usia","Pemantauan pertumbuhan di Posyandu","Kunjungan rumah lanjutan","Koordinasi dengan tenaga kesehatan","Rujuk/arah ke Puskesmas","Belum dilakukan"].map(x=>`<option ${saved.tindakan===x?"selected":""}>${x}</option>`).join("")}</select></label>
   <label class="fq-item fq-full"><span>Catatan singkat (opsional)</span><textarea name="catatan" rows="2" placeholder="Temuan penting atau rencana berikutnya">${(saved.catatan||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")}</textarea></label>
   <div class="fq-actions"><button class="btn" type="submit">Simpan jawaban</button><span id="followupStatus" class="fq-status">${saved.savedAt?"Jawaban tersimpan di perangkat ini.":""}</span></div>
@@ -680,16 +689,16 @@ function downloadFollowupCSV(){
   }
  });
  if(!records.length){alert("Belum ada formulir tindak lanjut yang tersimpan pada browser/perangkat ini.");return;}
- const base=["Nama anak","Desa","Posyandu","Tanggal tindak lanjut","Petugas"];
+ const base=["Nama anak","Tanggal lahir","Umur saat pengukuran terakhir","Desa","Posyandu","Tanggal tindak lanjut","Petugas"];
  const keys=[...new Set(records.flatMap(({d})=>Object.keys(d).filter(k=>!["savedAt","history"].includes(k))))];
- const labels={tanggal:"Tanggal tindak lanjut",petugas:"Petugas",tindakan:"Tindakan",catatan:"Catatan",hasil:"Hasil tindak lanjut",rencana:"Rencana tindak lanjut"};
+ const labels={tanggal:"Tanggal tindak lanjut",petugas:"Petugas",tanggalUlang:"Tanggal pengukuran ulang",bbUlang:"Berat badan ulang (kg)",pbTbUlang:"Panjang/Tinggi badan ulang (cm)",tindakan:"Tindakan",catatan:"Catatan",hasil:"Hasil tindak lanjut",rencana:"Rencana tindak lanjut"};
  const extra=keys.filter(k=>!["tanggal","petugas"].includes(k));
  const headers=[...base,...extra.map(k=>labels[k]||k)];
  // Gunakan titik koma agar Excel dengan pengaturan regional Indonesia memisahkan data ke kolom.
  const csvCell=v=>'"'+String(v==null?"":Array.isArray(v)?v.join(", "):v).replace(/"/g,'""')+'"';
  const lines=[headers.map(csvCell).join(";")];
  records.forEach(({c,d})=>{
-  const row=[c.nama||"",c.desa||"",c.posyandu||"",d.tanggal||"",d.petugas||""];
+  const row=[c.nama||"",c.lahir||"",ageText(c),c.desa||"",c.posyandu||"",d.tanggal||"",d.petugas||""]; // Identitas Excel: tanggal lahir dan umur pada pengukuran terakhir.
   extra.forEach(k=>row.push(d[k]??""));
   lines.push(row.map(csvCell).join(";"));
  });
@@ -699,6 +708,8 @@ function downloadFollowupCSV(){
  a.download="rekap_tindak_lanjut_SIGIZI_AI_"+new Date().toISOString().slice(0,10)+".csv";
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+
+
 
 function renderFollowupDashboard(){
  const total=children.length; let filled=0,pending=0; const rows=[];
@@ -717,20 +728,14 @@ function renderFollowupDashboard(){
  target.innerHTML='<table class="followup-table"><thead><tr><th>Nama anak</th><th>Desa / Posyandu</th><th>Tanggal</th><th>Petugas</th><th>Tindakan</th><th>Catatan</th></tr></thead><tbody>'+rows.map(({c,d})=>`<tr><td><b>${safe(c.nama)}</b></td><td>${safe(c.desa)}<br>${safe(c.posyandu)}</td><td>${safe(d.tanggal)}</td><td>${safe(d.petugas)}</td><td>${safe(d.tindakan)}</td><td>${safe(d.catatan)}</td></tr>`).join('')+'</tbody></table>';
 }
 
+
 function renderFollowupHistory(c){
- let saved=null;
- try{saved=JSON.parse(localStorage.getItem(followupStorageKey(c))||"null");}catch(e){}
- if(!saved || typeof saved!=="object") return `<section class="card" style="margin-top:12px"><details><summary style="cursor:pointer;font-weight:800;color:var(--primary2);font-size:15px">🗂️ Riwayat tindak lanjut (klik untuk membuka)</summary><p class="note" style="margin-top:10px">Belum ada tindak lanjut yang tersimpan pada perangkat ini.</p></details></section>`;
- const history=Array.isArray(saved.history)&&saved.history.length?saved.history:[saved];
- const fields=[
-  ["asi","ASI"],["asiEks","ASI eksklusif"],["mpasiMulai","Mulai MP-ASI"],["makan","Frekuensi makan"],
-  ["karbo","Makanan pokok"],["protein","Sumber protein"],["sayurbuah","Sayur/buah"],["tekstur","Tekstur makanan"],
-  ["selingan","Makanan selingan"],["nafsu","Nafsu makan"],["sakit","Riwayat sakit"],["pmt","Penerimaan PMT"],
-  ["kendala","Kendala"],["tindakan","Tindakan"],["hasil","Hasil tindak lanjut"],["rencana","Rencana berikutnya"],["catatan","Catatan"]
- ];
+ const key=followupStorageKey(c); let d=null;
+ try{d=JSON.parse(localStorage.getItem(key)||"null");}catch(e){}
+ const items=d&&Array.isArray(d.history)&&d.history.length?d.history:(d&&typeof d==="object"?[d]:[]);
  const safe=v=>esc(v==null||v===""?"—":String(v));
- const rows=[...history].sort((a,b)=>String(b.tanggal||b.savedAt||"").localeCompare(String(a.tanggal||a.savedAt||"")));
- return `<section class="card" style="margin-top:12px"><details><summary style="cursor:pointer;font-weight:800;color:var(--primary2);font-size:15px">🗂️ Riwayat tindak lanjut (${rows.length}) — klik untuk membuka</summary><div style="overflow:auto;margin-top:10px"><table class="history" style="min-width:650px"><thead><tr><th>Tanggal</th><th>Petugas</th><th>Ringkasan</th><th>Catatan</th></tr></thead><tbody>${rows.map(d=>{const summary=fields.filter(([k])=>d[k]).map(([k,label])=>`<div><b>${label}:</b> ${safe(d[k])}</div>`).join("");return `<tr><td>${safe(d.tanggal|| (d.savedAt?new Date(d.savedAt).toLocaleDateString('id-ID'):"—"))}</td><td>${safe(d.petugas)}</td><td>${summary||"—"}</td><td>${safe(d.catatan)}</td></tr>`}).join("")}</tbody></table></div></details></section>`;
+ const rows=items.slice().sort((a,b)=>String(b.tanggal||b.savedAt||"").localeCompare(String(a.tanggal||a.savedAt||""))).map(x=>`<tr><td>${safe(x.tanggal)}</td><td>${safe(x.petugas)}</td><td>${safe(x.responden)}</td><td>${safe(x.tindakan)}</td><td>${safe(x.tanggalUlang)}</td><td>${safe(x.bbUlang)}</td><td>${safe(x.pbTbUlang)}</td><td>${safe(x.catatan)}</td></tr>`).join("");
+ return `<section class="card" style="box-shadow:none;margin-top:12px"><details><summary style="cursor:pointer;font-weight:800;color:var(--primary2);font-size:14px">📋 Riwayat Tindak Lanjut (klik untuk membuka) <span style="font-weight:500;color:#64748b">— ${items.length} entri</span></summary><div style="overflow:auto;margin-top:10px"><table class="history" style="min-width:850px"><thead><tr><th>Tanggal</th><th>Petugas</th><th>Responden</th><th>Tindakan</th><th>Tanggal ukur ulang</th><th>BB ulang (kg)</th><th>PB/TB ulang (cm)</th><th>Catatan</th></tr></thead><tbody>${rows||'<tr><td colspan="8">Belum ada riwayat tindak lanjut untuk anak ini.</td></tr>'}</tbody></table></div></details></section>`;
 }
 
 function bindFollowupForm(){
@@ -749,8 +754,7 @@ function bindFollowupForm(){
    localStorage.setItem(form.dataset.key,JSON.stringify(record));
    const status=document.getElementById("followupStatus");
    if(status)status.textContent="Jawaban berhasil disimpan di perangkat ini.";
-   renderFollowupDashboard();
-  }catch(err){alert("Jawaban belum dapat disimpan. Periksa penyimpanan browser/perangkat.");}
+    }catch(err){alert("Jawaban belum dapat disimpan. Periksa penyimpanan browser/perangkat.");}
  });
 }
 
@@ -889,7 +893,6 @@ function init(){
  const pos=document.getElementById("pos"); DATA.summary.posyandu.filter(x=>x && x!=="-").forEach(p=>pos.insertAdjacentHTML("beforeend",`<option>${esc(p)}</option>`));
  makeChart("chartTotal","total",Math.max(...DATA.trend.map(x=>x.total)));
  renderCoverageChart();
- renderFollowupDashboard();
  apply();
 }
 
