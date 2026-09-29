@@ -236,7 +236,7 @@ table{width:100%}
     </div>
     <h3 style="font-size:14px;margin:12px 0 8px">Riwayat tindak lanjut yang tersimpan</h3>
     <div id="followupDashboardRows" class="followup-table-wrap"><div class="followup-empty">Belum ada formulir tindak lanjut yang tersimpan pada perangkat ini.</div></div>
-    <div class="fq-actions"><button class="btn2" type="button" onclick="renderFollowupDashboard()">Perbarui rekap</button></div>
+    <div class="fq-actions"><button class="btn2" type="button" onclick="renderFollowupDashboard()">Perbarui rekap</button><button class="btn" type="button" onclick="downloadFollowupCSV()">⬇️ Unduh data tindak lanjut (CSV)</button></div>
   </details>
 </section>
 
@@ -669,6 +669,37 @@ function renderFollowupQuestionnaire(c){
  </form></section>`;
 }
 
+function downloadFollowupCSV(){
+ const records=[];
+ children.forEach(c=>{
+  let d=null;
+  try{d=JSON.parse(localStorage.getItem(followupStorageKey(c))||"null");}catch(e){}
+  if(d&&typeof d==="object"){
+   const history=Array.isArray(d.history)&&d.history.length?d.history:[d];
+   history.forEach(item=>{if(item&&typeof item==="object")records.push({c,d:item});});
+  }
+ });
+ if(!records.length){alert("Belum ada formulir tindak lanjut yang tersimpan pada browser/perangkat ini.");return;}
+ const base=["Nama anak","Desa","Posyandu","Tanggal tindak lanjut","Petugas"];
+ const keys=[...new Set(records.flatMap(({d})=>Object.keys(d).filter(k=>!["savedAt","history"].includes(k))))];
+ const labels={tanggal:"Tanggal tindak lanjut",petugas:"Petugas",tindakan:"Tindakan",catatan:"Catatan",hasil:"Hasil tindak lanjut",rencana:"Rencana tindak lanjut"};
+ const extra=keys.filter(k=>!["tanggal","petugas"].includes(k));
+ const headers=[...base,...extra.map(k=>labels[k]||k)];
+ // Gunakan titik koma agar Excel dengan pengaturan regional Indonesia memisahkan data ke kolom.
+ const csvCell=v=>'"'+String(v==null?"":Array.isArray(v)?v.join(", "):v).replace(/"/g,'""')+'"';
+ const lines=[headers.map(csvCell).join(";")];
+ records.forEach(({c,d})=>{
+  const row=[c.nama||"",c.desa||"",c.posyandu||"",d.tanggal||"",d.petugas||""];
+  extra.forEach(k=>row.push(d[k]??""));
+  lines.push(row.map(csvCell).join(";"));
+ });
+ const blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv;charset=utf-8;"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");a.href=url;
+ a.download="rekap_tindak_lanjut_SIGIZI_AI_"+new Date().toISOString().slice(0,10)+".csv";
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
 function renderFollowupDashboard(){
  const total=children.length; let filled=0,pending=0; const rows=[];
  children.forEach(c=>{
@@ -686,6 +717,22 @@ function renderFollowupDashboard(){
  target.innerHTML='<table class="followup-table"><thead><tr><th>Nama anak</th><th>Desa / Posyandu</th><th>Tanggal</th><th>Petugas</th><th>Tindakan</th><th>Catatan</th></tr></thead><tbody>'+rows.map(({c,d})=>`<tr><td><b>${safe(c.nama)}</b></td><td>${safe(c.desa)}<br>${safe(c.posyandu)}</td><td>${safe(d.tanggal)}</td><td>${safe(d.petugas)}</td><td>${safe(d.tindakan)}</td><td>${safe(d.catatan)}</td></tr>`).join('')+'</tbody></table>';
 }
 
+function renderFollowupHistory(c){
+ let saved=null;
+ try{saved=JSON.parse(localStorage.getItem(followupStorageKey(c))||"null");}catch(e){}
+ if(!saved || typeof saved!=="object") return `<section class="card" style="margin-top:12px"><details><summary style="cursor:pointer;font-weight:800;color:var(--primary2);font-size:15px">🗂️ Riwayat tindak lanjut (klik untuk membuka)</summary><p class="note" style="margin-top:10px">Belum ada tindak lanjut yang tersimpan pada perangkat ini.</p></details></section>`;
+ const history=Array.isArray(saved.history)&&saved.history.length?saved.history:[saved];
+ const fields=[
+  ["asi","ASI"],["asiEks","ASI eksklusif"],["mpasiMulai","Mulai MP-ASI"],["makan","Frekuensi makan"],
+  ["karbo","Makanan pokok"],["protein","Sumber protein"],["sayurbuah","Sayur/buah"],["tekstur","Tekstur makanan"],
+  ["selingan","Makanan selingan"],["nafsu","Nafsu makan"],["sakit","Riwayat sakit"],["pmt","Penerimaan PMT"],
+  ["kendala","Kendala"],["tindakan","Tindakan"],["hasil","Hasil tindak lanjut"],["rencana","Rencana berikutnya"],["catatan","Catatan"]
+ ];
+ const safe=v=>esc(v==null||v===""?"—":String(v));
+ const rows=[...history].sort((a,b)=>String(b.tanggal||b.savedAt||"").localeCompare(String(a.tanggal||a.savedAt||"")));
+ return `<section class="card" style="margin-top:12px"><details><summary style="cursor:pointer;font-weight:800;color:var(--primary2);font-size:15px">🗂️ Riwayat tindak lanjut (${rows.length}) — klik untuk membuka</summary><div style="overflow:auto;margin-top:10px"><table class="history" style="min-width:650px"><thead><tr><th>Tanggal</th><th>Petugas</th><th>Ringkasan</th><th>Catatan</th></tr></thead><tbody>${rows.map(d=>{const summary=fields.filter(([k])=>d[k]).map(([k,label])=>`<div><b>${label}:</b> ${safe(d[k])}</div>`).join("");return `<tr><td>${safe(d.tanggal|| (d.savedAt?new Date(d.savedAt).toLocaleDateString('id-ID'):"—"))}</td><td>${safe(d.petugas)}</td><td>${summary||"—"}</td><td>${safe(d.catatan)}</td></tr>`}).join("")}</tbody></table></div></details></section>`;
+}
+
 function bindFollowupForm(){
  const form=document.getElementById("followupForm");
  if(!form)return;
@@ -694,6 +741,10 @@ function bindFollowupForm(){
   const data=Object.fromEntries(new FormData(form).entries());
   data.savedAt=new Date().toISOString();
   try{
+   const previous=JSON.parse(localStorage.getItem(form.dataset.key)||"null");
+   const history=previous&&Array.isArray(previous.history)?previous.history:(previous&&typeof previous==="object"?[previous]:[]);
+   history.push(data);
+   data.history=history;
    localStorage.setItem(form.dataset.key,JSON.stringify(data));
    const status=document.getElementById("followupStatus");
    if(status)status.textContent="Jawaban berhasil disimpan di perangkat ini.";
@@ -779,6 +830,7 @@ ${t?`<div class="sourcebox" style="border-left:4px solid #0f766e">
   <div style="overflow:auto"><table class="history"><thead><tr><th>Tanggal Pengukuran</th><th>Umur saat pengukuran</th><th>BB (kg)</th><th>PB/TB (cm)</th><th>BB/U</th><th>TB/U</th><th>BB/TB</th><th>Z BB/U</th><th>Z TB/U</th><th>Z BB/TB</th><th>Naik / Tidak Naik</th><th>Posyandu</th></tr></thead><tbody>${ukur||'<tr><td colspan="12">Tidak ada data pengukuran.</td></tr>'}</tbody></table></div>
 
   ${renderFollowupQuestionnaire(c)}
+  ${renderFollowupHistory(c)}
   <div class="edu"><h3>🗣️ Panduan Bicara Langsung untuk Kader</h3>
     <p style="font-size:12px;margin:0 0 8px"><b>Gunakan alur SAJI: Salam – Ajak bicara – Jelaskan – Ingatkan.</b></p>
     <ol style="margin:7px 0 12px 20px;padding:0;font-size:12px;line-height:1.65">${e.script.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>
