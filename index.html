@@ -701,6 +701,28 @@ function bindFollowupForm(){
   }catch(err){alert("Jawaban belum dapat disimpan. Periksa penyimpanan browser/perangkat.");}
  });
 }
+
+function edukasiPemberianMakanan(c){
+ const m=ageMonthsAtDate(c,c.lastDate||'2026-08-29');
+ const rows=[
+  {min:0,max:5,label:'0–<6 bulan',pesan:'ASI eksklusif; tidak perlu makanan/minuman lain kecuali ada indikasi medis.',praktik:'Dukung ibu menyusui, posisi dan pelekatan nyaman, menyusui responsif siang-malam, minta bantuan petugas bila ada nyeri atau kesulitan.'},
+  {min:6,max:8,label:'6–8 bulan',pesan:'Mulai MP-ASI saat usia 6 bulan sambil tetap menyusui. Tekstur lumat/kental sesuai kemampuan, makanan beragam dan padat gizi.',praktik:'Kenalkan sumber karbohidrat, protein terutama hewani bila tersedia, sayur/buah; mulai jumlah kecil dan tingkatkan bertahap. Hindari makanan terlalu encer.'},
+  {min:9,max:11,label:'9–11 bulan',pesan:'Teruskan ASI dan tingkatkan variasi, jumlah, frekuensi, serta tekstur sesuai perkembangan.',praktik:'Makanan lembik/cincang; berikan lauk sumber protein, sayur/buah; dorong anak makan sendiri dengan pengawasan dan aman.'},
+  {min:12,max:23,label:'12–23 bulan',pesan:'ASI dilanjutkan sampai 2 tahun atau lebih; makanan keluarga dimodifikasi agar sesuai tekstur dan kebutuhan anak.',praktik:'Jadwal teratur, makanan utama dan selingan bergizi; berikan protein, sayur/buah, dan air putih; dampingi dengan sabar.'},
+  {min:24,max:999,label:'24 bulan ke atas',pesan:'Biasakan makanan beragam, jadwal teratur, air putih, dan aktivitas fisik/bermain.',praktik:'Libatkan anak dalam pilihan makanan sehat; batasi minuman berpemanis dan jajanan tinggi gula/garam/lemak; hindari memaksa atau mempermalukan.'}
+ ];
+ const active=rows.find(r=>m>=r.min&&m<=r.max);
+ return `<section class="isi-piringku-card" id="edukasiPemberianMakanan">
+ <h3 class="isi-piringku-title">🥣 7. Edukasi pemberian makanan sesuai usia</h3>
+ <p class="isi-piringku-sub">Pilih pesan berdasarkan usia anak saat pengukuran terakhir. Sesuaikan edukasi dengan kemampuan makan, kondisi kesehatan, kebiasaan keluarga, dan ketersediaan pangan lokal. Utamakan dialog dan contoh bahan pangan yang mudah diperoleh.</p>
+ <div class="sourcebox" style="margin:0 0 10px"><b>Kelompok usia anak:</b> ${active?active.label:'Belum dapat ditentukan'}${active?' — fokuskan percakapan pada pesan di bawah.':''}</div>
+ <div class="table-wrap" style="overflow-x:auto"><table class="history" style="min-width:680px"><thead><tr><th>Usia</th><th>Pesan inti</th><th>Edukasi yang diberikan</th></tr></thead><tbody>
+ ${rows.map(r=>`<tr${active===r?' style="background:#effaf8;outline:2px solid #0f766e"':''}><td><b>${r.label}</b>${active===r?'<br><span style="color:#0f766e;font-size:10px">Sesuai usia anak</span>':''}</td><td>${r.pesan}</td><td>${r.praktik}</td></tr>`).join('')}
+ </tbody></table></div>
+ <p class="note">Gunakan tabel sebagai panduan percakapan, bukan daftar instruksi kaku. Tanyakan kebiasaan makan keluarga dan sepakati perubahan kecil yang realistis.</p>
+ </section>`;
+}
+
 function openProfile(idx){
  try{
  const c=children[idx];
@@ -768,6 +790,7 @@ ${t?`<div class="sourcebox" style="border-left:4px solid #0f766e">
   </div>
   <div class="sourcebox"><b>📚 Referensi</b><br><i>Keputusan Direktur Jenderal Kesehatan Primer dan Komunitas Nomor HK.02.02/B/576/2025 tentang Petunjuk Teknis Pemberian Makanan Tambahan Berbahan Pangan Lokal bagi Ibu Hamil dan Balita Bermasalah Gizi</i> (khusus tata laksana balita bermasalah gizi), serta pedoman Kementerian Kesehatan RI untuk edukasi dan kunjungan kader.</div>
   ${(()=>{try{return isiPiringRekomendasi(c)||"";}catch(err){return "";}})()}
+  ${edukasiPemberianMakanan(c)}
   <div class="note">Materi ini membantu percakapan dan kunjungan kader. Kader tidak menetapkan diagnosis; penilaian dan keputusan klinis tetap dilakukan oleh tenaga kesehatan.</div>`;
  bindFollowupForm();
  document.getElementById("modal").classList.add("show");
