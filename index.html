@@ -1128,7 +1128,16 @@ function renderGeoTrend(){
  const label=document.getElementById("geoIssue").selectedOptions[0].textContent;
  let out=`<div style="font-weight:700;margin:8px 0">Tren ${label} — ${level==="desa"?"Desa":"Posyandu"}</div><table style="border-collapse:collapse;font-size:12px;min-width:760px"><thead><tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--line)">${level==="desa"?"Desa":"Posyandu"}</th>${months.map(m=>`<th style="padding:8px;border-bottom:1px solid var(--line)">${m}<br><small>n (%)</small></th>`).join("")}</tr></thead><tbody>`;
  rows.forEach(row=>{out+=`<tr><td style="padding:8px;border-bottom:1px solid var(--line);font-weight:700">${row.name}</td>${row.monthly.map(x=>`<td style="padding:8px;text-align:center;border-bottom:1px solid var(--line)">${x.den?`${x.n} (${x.p.toFixed(1)}%)`:"—"}</td>`).join("")}</tr>`});
- out+=`</tbody></table><p class="note">Urutan berdasarkan persentase Agustus 2026. Persentase = jumlah anak dengan masalah ÷ anak terukur pada kelompok dan bulan yang sama × 100%. Tanda — berarti tidak ada data pengukuran.</p>`;
+ if(level==="desa"){
+  const totalMembers=children.filter(c=>["ALUR BANDUNG","SUNGAI PADUAN"].includes(String(c.desa||"").trim().toUpperCase()));
+  const totalMonthly=months.map(m=>{
+   const measured=totalMembers.map(c=>(c.pengukuran||[]).filter(x=>x.bulan===m).slice(-1)[0]).filter(Boolean);
+   const n=measured.filter(matches).length;
+   return {n,den:measured.length,p:measured.length?100*n/measured.length:0};
+  });
+  out+=`<tr style="background:#effaf8"><td style="padding:8px;border-bottom:1px solid var(--line);font-weight:800">TOTAL 2 DESA</td>${totalMonthly.map(x=>`<td style="padding:8px;text-align:center;border-bottom:1px solid var(--line);font-weight:800">${x.den?`${x.n} (${x.p.toFixed(1)}%)`:"—"}</td>`).join("")}</tr>`;
+ }
+ out+=`</tbody></table><p class="note">${level==="desa"?"Baris TOTAL 2 DESA merupakan gabungan Alur Bandung dan Sungai Paduan. ":""}Urutan berdasarkan persentase Agustus 2026. Persentase = jumlah anak dengan masalah ÷ anak terukur pada kelompok dan bulan yang sama × 100%. Tanda — berarti tidak ada data pengukuran.</p>`;
  document.getElementById("geoTrendResult").innerHTML=out;
 }
 
