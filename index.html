@@ -1150,27 +1150,26 @@ function renderGeoTrend(){
  out+=`</tbody></table>`;
  if(level==="desa"){
   const pieMonth="Sep";
-  const pieColors={stunting:"#2563eb",underweight:"#f59e0b",wasting:"#ef4444",overweight:"#a855f7",multiple:"#0f766e",normal:"#d1e7e3"};
+  const pieColors={stunting:"#2563eb",wasting:"#ef4444",underweight:"#f59e0b",overweight:"#a855f7",normal:"#d1e7e3"};
   const pieData=["ALUR BANDUNG","SUNGAI PADUAN"].map(name=>{
    const group=children.filter(c=>String(c.desa||"").trim().toUpperCase()===name);
    const measured=group.map(c=>(c.pengukuran||[]).filter(x=>x.bulan===pieMonth).slice(-1)[0]).filter(Boolean);
-   const counts={stunting:0,underweight:0,wasting:0,overweight:0,multiple:0,normal:0};
+   const counts={stunting:0,wasting:0,underweight:0,overweight:0,normal:0};
    measured.forEach(r=>{
     const flags=[];
     if(["Pendek","Sangat Pendek"].includes(r.tb_u)) flags.push("stunting");
-    if(["Kurang","Sangat Kurang"].includes(r.bb_u)) flags.push("underweight");
     if(["Gizi Kurang","Gizi Buruk"].includes(r.bb_tb)) flags.push("wasting");
+    if(["Kurang","Sangat Kurang"].includes(r.bb_u)) flags.push("underweight");
     if(["Risiko Gizi Lebih","Gizi Lebih","Obesitas"].includes(r.bb_tb)) flags.push("overweight");
     if(flags.length===0) counts.normal++;
-    else if(flags.length===1) counts[flags[0]]++;
-    else counts.multiple++;
+    else flags.forEach(k=>counts[k]++);
    });
    return {name,total:measured.length,counts};
   });
-  out+=`<div style="font-weight:800;margin:16px 0 8px;color:var(--primary2)">Komposisi Masalah Gizi per Desa — September 2026</div><p class="note">Setiap anak dihitung satu kali. Anak dengan lebih dari satu masalah dimasukkan ke kategori "Masalah kombinasi" agar jumlah seluruh bagian lingkaran sesuai dengan jumlah anak terukur.</p><div class="geo-pies">${pieData.map(d=>{
-   const keys=["stunting","underweight","wasting","overweight","multiple","normal"],labels={stunting:"Stunting",underweight:"Underweight",wasting:"Wasting",overweight:"Gizi lebih",multiple:"Masalah kombinasi",normal:"Tidak bermasalah"};
-   let cursor=0; const stops=keys.map(k=>{const start=cursor;cursor+=d.total?100*d.counts[k]/d.total:0;return `${pieColors[k]} ${start}% ${cursor}%`;}).join(",");
-   return `<div class="geo-pie-card"><div style="font-weight:800;font-size:13px">${d.name}</div><div class="geo-pie" style="background:${d.total?`conic-gradient(${stops})`:"#d1e7e3"}"><div class="geo-pie-hole"><b>${d.total?d.total:"—"}</b><span>anak terukur</span></div></div><div class="geo-pie-legend">${keys.map(k=>`<span><i style="background:${pieColors[k]}"></i>${labels[k]}: ${d.total?(100*d.counts[k]/d.total).toFixed(1).replace(".",",")+"%":"—"} (${d.counts[k]} anak)</span>`).join("")}</div><div class="note">${d.total} anak terukur · Persentase dari seluruh anak terukur</div></div>`;
+  out+=`<div style="font-weight:800;margin:16px 0 8px;color:var(--primary2)">Komposisi Masalah Gizi per Desa — September 2026</div><p class="note">Kategori masalah ditampilkan terpisah. Satu anak dapat tercatat pada lebih dari satu indikator, sehingga persentase tiap indikator dihitung dari seluruh anak terukur dan tidak harus berjumlah 100%. Normal berarti tidak ditemukan masalah pada indikator yang ditampilkan.</p><div class="geo-pies">${pieData.map(d=>{
+   const keys=["stunting","wasting","underweight","overweight","normal"],labels={stunting:"Stunting",wasting:"Wasting",underweight:"Underweight",overweight:"Gizi lebih",normal:"Normal"};
+   const sum=keys.reduce((a,k)=>a+d.counts[k],0); let cursor=0; const stops=keys.map(k=>{const start=cursor;cursor+=sum?100*d.counts[k]/sum:0;return `${pieColors[k]} ${start}% ${cursor}%`;}).join(",");
+   return `<div class="geo-pie-card"><div style="font-weight:800;font-size:13px">${d.name}</div><div class="geo-pie" style="background:${sum?`conic-gradient(${stops})`:"#d1e7e3"}"><div class="geo-pie-hole"><b>${d.total?d.total:"—"}</b><span>anak terukur</span></div></div><div class="geo-pie-legend">${keys.map(k=>`<span><i style="background:${pieColors[k]}"></i>${labels[k]}: ${d.total?(100*d.counts[k]/d.total).toFixed(1).replace(".",",")+"%":"—"} (${d.counts[k]} anak)</span>`).join("")}</div><div class="note">${d.total} anak terukur · Persentase dari seluruh anak terukur</div></div>`;
   }).join("")}</div>`;
  }
  out+=`<p class="note">${level==="desa"?"Baris TOTAL 2 DESA merupakan gabungan Alur Bandung dan Sungai Paduan. ":""}Urutan berdasarkan persentase September 2026. Persentase = jumlah anak dengan masalah ÷ anak terukur pada kelompok dan bulan yang sama × 100%. Tanda — berarti tidak ada data pengukuran.</p>`;
